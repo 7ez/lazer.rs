@@ -2,6 +2,7 @@ use std::io::Result;
 use std::sync::Arc;
 
 use clap::Parser;
+use lazer::models::cache::Cache;
 use sqlx::mysql::MySqlPool;
 
 use lazer::config::Config;
@@ -14,13 +15,19 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     let config = Arc::new(Config::parse());
-    let pool = MySqlPool::connect(&config.database_url)
+    
+    let database = MySqlPool::connect(&config.database_url)
         .await
         .unwrap();
 
+    let cache = Arc::new(Cache {
+        users: Default::default(),
+    });
+    
     let context = Context {
         config,
-        pool,
+        cache,
+        database,
     };
 
     api::serve(context).await?;

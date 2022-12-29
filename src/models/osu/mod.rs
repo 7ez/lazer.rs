@@ -1,0 +1,17 @@
+pub mod user_compact;
+pub mod rank_history;
+pub mod account_history;
+pub mod stats_rulesets;
+pub mod replays_watched_count;
+pub mod user;
+pub mod page;
+pub mod stats;
+pub mod badge;
+pub mod cover;
+pub mod group;
+pub mod level;
+pub mod grades;
+pub mod kudosu;
+pub mod country;
+pub mod playcount;
+pub mod achievement;

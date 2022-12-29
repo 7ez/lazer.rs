@@ -1,7 +1,7 @@
 use axum::{ 
     routing::post,
-    extract::Extension,
-    Router, Json, Form,
+    extract::{ Multipart, Extension },
+    Router, Json, http::HeaderMap,
 };
 
 use serde::{ Deserialize };
@@ -10,6 +10,7 @@ use sqlx::Row;
 use uuid::Uuid;
 
 use crate::Context;
+use crate::repositories;
 
 pub fn router() -> Router {
     Router::new()
@@ -24,11 +25,42 @@ struct LoginInfo {
     password:       String,
 }
 
+async fn parse_login(mut multipart: Multipart) -> LoginInfo {
+    let mut login_info = LoginInfo {
+        client_id:      0,
+        client_secret:  String::new(),
+        username:       String::new(),
+        password:       String::new(),
+    };
+
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap().to_owned();
+        let value = field.text().await.unwrap().to_owned();
+        
+        log::debug!("{}: {}", name, value);
+
+        match name.as_str() {
+            "client_id" => login_info.client_id = value.parse().unwrap(),
+            "client_secret" => login_info.client_secret = value,
+            "username" => login_info.username = value,
+            "password" => login_info.password = value,
+            _ => {}
+        }
+    }
+
+    login_info
+}
+
 
 async fn token(
+    headers: HeaderMap,
     ctx: Extension<Context>, 
-    Form(login_info): Form<LoginInfo>
+    multipart: Multipart,
 ) -> Json<Value> {
+    assert_eq!(headers.get("User-Agent").unwrap(), "osu!");
+
+    let login_info = parse_login(multipart).await;
+
     // osu!lazer has a static client id & secret
     assert_eq!(login_info.client_id, 5);
     assert!([
@@ -37,11 +69,7 @@ async fn token(
         ].contains(&login_info.client_secret.as_str())
     );
 
-    let user = sqlx::query("SELECT * FROM users WHERE username = ?")
-        .bind(&login_info.username)
-        .fetch_optional(&ctx.pool)
-        .await
-        .unwrap();
+    let user = repositories::players::fetch_by_name(&ctx, &login_info.username).await;
 
     if user.is_none() {
         return Json(json!({
