@@ -1,23 +1,24 @@
 use axum::{ 
     routing::post,
     extract::{ Multipart, Extension },
-    Router, Json, http::HeaderMap,
+    http::{ HeaderMap, StatusCode },
+    Router, Json, 
 };
 
 use serde::{ Deserialize };
 use serde_json::{Value, json};
 use sqlx::Row;
-use uuid::Uuid;
 
 use crate::Context;
 use crate::repositories;
+use crate::usecases;
 
 pub fn router() -> Router {
     Router::new()
         .route("/oauth/token", post(token))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct LoginInfo {
     client_id:      u8,
     client_secret:  String,
@@ -36,8 +37,6 @@ async fn parse_login(mut multipart: Multipart) -> LoginInfo {
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_owned();
         let value = field.text().await.unwrap().to_owned();
-        
-        log::debug!("{}: {}", name, value);
 
         match name.as_str() {
             "client_id" => login_info.client_id = value.parse().unwrap(),
@@ -56,7 +55,7 @@ async fn token(
     headers: HeaderMap,
     ctx: Extension<Context>, 
     multipart: Multipart,
-) -> Json<Value> {
+) -> (StatusCode, Json<Value>) {
     assert_eq!(headers.get("User-Agent").unwrap(), "osu!");
 
     let login_info = parse_login(multipart).await;
@@ -69,25 +68,42 @@ async fn token(
         ].contains(&login_info.client_secret.as_str())
     );
 
-    let user = repositories::players::fetch_by_name(&ctx, &login_info.username).await;
+    let user = repositories::players::fetch_by_name(&ctx.database, &login_info.username).await;
 
     if user.is_none() {
-        return Json(json!({
+        return (StatusCode::BAD_REQUEST, Json(json!({
             "hint": "The username or password is incorrect."
-        }));
+        })));
     }
 
     let user = user.unwrap();
     let id: i32 = user.try_get("id").unwrap();
-    let username: &str = user.try_get("username").unwrap();
-    log::debug!("<{} ({})>", username, id);
+    let username: String = user.try_get("username").unwrap();
+    let pw_md5: String = usecases::bcrypt::get_md5(&login_info.password);
+    let pw_bcrypt: String = user.try_get("pw_bcrypt").unwrap();
 
-    let token = Uuid::new_v4().to_string();
-    log::debug!("{}:{}", login_info.username, login_info.password);
+    if !ctx.cache.passwords.lock().await.contains_key(&pw_md5) {
+        if !usecases::bcrypt::verify(&pw_md5, &pw_bcrypt) {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "hint": "The username or password is incorrect."
+            })));
+        }
 
-    Json(json!({
-        "token_type": "Bearer",
-        "expires_in": 86331,
-        "access_token": token,
-    }))
+        ctx.cache.passwords.lock().await.insert(pw_bcrypt, pw_md5);
+    } else {
+        if ctx.cache.passwords.lock().await.get(&pw_bcrypt).unwrap() != &pw_md5 {
+            return (StatusCode::BAD_REQUEST, Json(json!({
+                "hint": "The username or password is incorrect."
+            })));
+        }
+    }
+
+    let session = repositories::sessions::create(&ctx, id.clone());
+    log::info!("<{} ({})> logged in!", username, id);
+    
+    (StatusCode::OK, Json(json!({
+        "token_type": session.token_type,
+        "expires_in": 86400,
+        "access_token": session.access_token,
+    })))
 }

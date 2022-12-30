@@ -2,6 +2,6 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct UserCountry {
-    code: String,
-    name: String,
+    pub code: String,
+    pub name: String,
 }

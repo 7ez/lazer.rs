@@ -4,5 +4,8 @@ pub struct Config {
     pub server_port: u16,
 
     #[clap(long, env)]
-    pub database_url: String,
+    pub database_dsn: String,
+
+    #[clap(long, env)]
+    pub redis_dsn: String,
 }

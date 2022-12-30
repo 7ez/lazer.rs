@@ -1,5 +1,8 @@
+use std::sync::Arc;
 use std::collections::HashMap;
 
+use tokio::sync::Mutex;
+
 pub struct Cache {
-    pub users:     HashMap<String, u32>, // username -> user_id   
+    pub passwords: Arc<Mutex<HashMap<String, String>>>, // pw_bcrypt -> pw_md5
 }

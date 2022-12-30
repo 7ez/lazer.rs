@@ -2,6 +2,6 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct UserKudosu {
-    total:      u32,
-    available:  u32
+    pub total:      u32,
+    pub available:  u32
 }

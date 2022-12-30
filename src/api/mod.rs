@@ -13,7 +13,9 @@ pub mod routes;
 
 fn api_router() -> Router {
     Router::new()
+        .merge(routes::api::router())
         .merge(routes::oauth::router())
+        .merge(routes::register::router())
 }
 
 pub async fn serve(context: Context) -> Result<()> {
@@ -26,7 +28,7 @@ pub async fn serve(context: Context) -> Result<()> {
     );
 
     let addr = SocketAddr::from(([127, 0, 0, 1], server_port));
-    log::info!("serving api on {}", addr);
+    log::info!("serving api on http://{}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await

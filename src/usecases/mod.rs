@@ -1,2 +1,2 @@
 pub mod players;
-pub mod sessions;
+pub mod bcrypt;

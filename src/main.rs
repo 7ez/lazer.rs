@@ -14,20 +14,22 @@ async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     env_logger::init();
 
-    let config = Arc::new(Config::parse());
-    
-    let database = MySqlPool::connect(&config.database_url)
+    let config = Config::parse();
+    let redis = redis::Client::open(config.redis_dsn.to_owned()).unwrap();    
+    let database = MySqlPool::connect(&config.database_dsn)
         .await
         .unwrap();
 
     let cache = Arc::new(Cache {
-        users: Default::default(),
+        passwords: Default::default(),
     });
-    
+
+    let config = Arc::new(config);
     let context = Context {
         config,
         cache,
         database,
+        redis
     };
 
     api::serve(context).await?;

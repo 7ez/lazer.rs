@@ -2,7 +2,7 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct UserCover {
-    custom_url:     Option<String>,
-    url:            Option<String>,
-    id:             Option<u32>,
+    pub custom_url:     Option<String>,
+    pub url:            Option<String>,
+    pub id:             Option<u32>,
 }

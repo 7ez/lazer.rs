@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct UserGrades {
     pub ssh:     u32, // Silver SS
     pub ss:      u32, // Normal SS

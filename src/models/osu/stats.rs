@@ -5,21 +5,21 @@ use super::{
     grades::UserGrades
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct UserStatistics {
-    level:                      UserLevel,
-    global_rank:                i32,
-    pp:                         f32,
-    accuracy:                   f32,
-    playcount:                  u32,
-    ranked_score:               u64,
-    total_score:                u64,
-    hit_accuracy:               f32,
-    play_time:                  u64,
-    total_hits:                 u64,
-    maximum_combo:              u32,
-    replays_watched_by_others:  u64,
-    is_ranked:                  bool,
-    grade_counts:               UserGrades,
-    country_rank:               i32,
+    pub level:                      UserLevel,
+    pub global_rank:                i32,
+    pub pp:                         i32,
+    pub accuracy:                   f32,
+    pub playcount:                  u32,
+    pub ranked_score:               u64,
+    pub total_score:                u64,
+    pub hit_accuracy:               f32,
+    pub play_time:                  u64,
+    pub total_hits:                 u64,
+    pub maximum_combo:              u32,
+    pub replays_watched_by_others:  u64,
+    pub is_ranked:                  bool,
+    pub grade_counts:               UserGrades,
+    pub country_rank:               i32,
 }
